@@ -11,7 +11,8 @@ Try it here:
 - [simple UI](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/DecryptWallet_2PW_Fix3.html)
 - [Using javascript webworkers](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/ReadExternalUriWebWorkers.html)
 
-There is also the multithreaded node.js version (tested with Node 4.4.2 LTS), here is how you would run it
+There is also the multithreaded node.js version (tested with Node 4.4.2 LTS)
+Here is how you would run it on Windows:
 - c:\utils\john179\run\john.exe -wordlist=1to10.txt --stdout | node wallet-node-stdin-multithread-crack.js
 
 The sample wallet used above is [1CkjhyBqfGVMME82nMrQYgtW7UAmibvvUW](https://blockchain.info/address/1CkjhyBqfGVMME82nMrQYgtW7UAmibvvUW) , the json encrypted backup is secured with the key 1234567890
