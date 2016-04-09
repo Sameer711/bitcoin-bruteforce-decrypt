@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<style type="text/css" rel="stylesheet">
+div#status {
+	width:200px;
+	right: 5%;
+position: absolute;
+	height: 200px;
+	border: 1px solid blue;
+}
+#statusSpan {
+width:0px;
+height:2em;
+white-space:nowrap;
+overflow:hidden;
+}
+
+</style>
+<script src="http://code.jquery.com/jquery-2.1.1.min.js"></script>
+<script src='http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js'></script>
+
+<script type="text/javascript">
+var finaltext; //text read from file
+
+Array.prototype.split = function split(n) {
+	var a= this;
+    var len = a.length,out = [], i = 0;
+    while (i < len) {
+        var size = Math.ceil((len - i) / n--);
+        out.push(a.slice(i, i += size));
+    }
+    return out;
+}
+
+ function checkFileAPI() {
+	if (window.File && window.FileReader && window.FileList && window.Blob) {
+		reader = new FileReader();
+		return true; 
+	} else {
+		alert('The File APIs are not fully supported by your browser. Fallback required.');
+		return false;
+	}
+}
+
+
+function readTextFile(file)
+{
+  $.ajax({
+        url : file,
+        type: 'GET',
+        success : handleData
+    })
+}
+
+
+function cartesianProductOf() {
+    return _.reduce(arguments, function (a, b) {
+        return _.flatten(_.map(a, function (x) {
+            return _.map(b, function (y) {
+                return x.concat([y]);
+            });
+        }), true);
+    }, [[]]);
+};
+
+
+function putDots(label) {
+	var dots = label.innerHTML.length % 10 + 2;
+	setTimeout(function() { label.innerHTML = Array(dots).join(".") },1000);
+}
+
+function handleData(finaltext) {
+var passwords = finaltext.split("\n");
+	var splitPasswordArray = passwords.split(8);
+	for (var i =0; i< 8; i++) {
+		var worker = new Worker("processing.js");	
+		worker.addEventListener('message', function(e) {
+			
+			$('#statusProgress').text('');
+			var spanWidth = 200;
+			var result = 'done: '+new Date() + "\n";
+			$('#statusSpan').text(result).animate({width: spanWidth},1000);
+		  if (e.data != null) {
+				document.getElementById("plain-json").textContent = e.data;
+		  }
+		}, false);
+
+		worker.onerror = function(e) {
+		  console.log("Worker error: " + 'ERROR: Line ', e.lineno, ' in ', e.filename, ': ', e.message+ "\n");
+		  throw error;
+		};
+	var encrypted = document.getElementById('enc-json').value;   	
+
+		worker.postMessage({encrypted: encrypted, passwords: splitPasswordArray[i]});
+	}
+}
+
+function do_decrypt() {
+   document.getElementById('error').innerHTML = '';
+   document.getElementById('plain-json').innerHTML = '';
+   document.getElementById('ul-keys').innerHTML = '';
+	document.getElementById('statusSpan').innerHTML = '';
+	$('#statusSpan').width(0);
+
+	var encrypted = document.getElementById('enc-json').value;   	
+	var filename = document.getElementById('filename').value;   	
+	//var passwords = document.getElementById('password').value.split('\n');
+	readTextFile(filename);
+	
+}
+
+
+	
+</script>
+
+</head>
+
+<body>
+
+<h1>Paste Encrypted JSON Backup</h1>
+
+<textarea class="xxlarge" name="textarea" id="enc-json" style="width: 100%; height: 45px;" placeholder="Encrypted JSON Data">1dMO9KjdMNuHreZ6x3QLqJR8WHjVjpb+XAOAJh7EKmP7PRMPSs/BRTjowVb0tAzZ9hu/sBRngEoQjYfdFcVDIXP/I4fRu9WxEfiR/76nqQ2qt7Ro2gisZ9RaRBI8oQTfdNjLJxK2P4iF1EtNPqeyJvh21uQOtZQuhxoAuUkKDJlrjOY1akKzth3rw+orQ8L7v1u74toHaIDFSyrMk6e3JiX/6C2e3QVzAkwD6yIh0mNppnoijDSVsbIpaOAyzurE1Pz7SAmTvKMz8igAXSXgGwhtyV+5UMJg4eVcIr+2M623SesaqWqMatYDqNIHKDFs/0ZRxpwzfU1mw+csq+FyunV68xiZKR28g1ZIWg5halhk064nU2QRiM7OzTLm7IXNuztjkWNC4deZgNcYCNFJXKsVaK1N+ch2BHDJx/UW+etAb2YN/tOkSHHPjJ4XLeVsyaU1ztla0t28x+IUyjn6ZL+7KtE+f7IGxEuO762qYQzZB25Z4xjI2Srd8P7d+qLaAhjVVjaM2dl+WEhixs0x65Fc139+j+w6vQc23XaPqJN1lV7laoqSGqMnAcyHLtuIMS5yuTHHTuV+CyaWHaCmZLuNvsWATJ0rhCUZbcvWK8r3XrCUhjzuu8xyaerBrzddy0WNH9HVUmocSyimJR6VzTKwQ0nnFplMFsPf+eC3Qp9o4DepZSk+gyIjolc/LTRW</textarea>
+<div id="status">
+<span id="statusSpan"></span>
+<span id="statusProgress"></span>
+</div>
+
+<p>Passwords file: 1 per line (read from file):</p>
+<input type='text' value='http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/data/1to10.txt' id='filename' style="width:500px">
+<textarea name="password" id="password" rows=10 cols=100 style="display:none;">
+1
+2
+3
+4
+5
+6
+7
+8
+9
+0
+12
+13
+14
+15
+16
+17
+18
+1234567890</textarea>
+
+<p>Decode:</p>
+<input type="submit" value="Decode" onclick="do_decrypt()">
+
+
+<h1>Result</h1>
+<!--	//****** Added for clarity. the private key is NOT in wallet import format. 
+//***** Bitaddress.org, for example, can not import this private key format at this time -->
+<i>Private keys displayed in raw base58 (not wallet import format)</i> 
+<ul id="ul-keys"></ul>
+
+Raw:
+<br>
+
+<textarea class="xxlarge" name="textarea" id="plain-json" style="width: 100%; height: 175px;" placeholder="JSON Data"></textarea>
+	
+<p><font color="red" style="font-size:18px" id="error"></font></p>
+
+
+
+</body></html>

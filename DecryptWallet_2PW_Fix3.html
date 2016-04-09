@@ -1,0 +1,227 @@
+<!DOCTYPE HTML>
+<!-- 
+	saved from https://blockchain.info/DecryptWallet.html 
+	edits and additions by Matthew Zipkin to fix problems when decrypting wallets with 2-password encryption
+	Blockchain.info is amazing and I love you, keep it up! THANKS!
+	please contact!! or tip :-)     Matthew.Zipkin@gmail.com     1BHkeAQYKXw9Lp4ewBZTyMpMnbiR63TtTH
+	
+	Adapted by Sameer Alibhai to do batch processing
+-->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<style type="text/css" rel="stylesheet">
+div#status {
+	width:200px;
+	right: 5%;
+position: absolute;
+	height: 200px;
+	border: 1px solid blue;
+}
+#statusSpan {
+width:0px;
+height:2em;
+white-space:nowrap;
+overflow:hidden;
+}
+
+</style>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+<script type="text/javascript" src="lib/crypto.js"></script>
+<script type="text/javascript">
+function readTextFile(file)
+{
+    var rawFile = new XMLHttpRequest();
+    rawFile.open("GET", file, false);
+    rawFile.onreadystatechange = function ()
+    {
+        if(rawFile.readyState === 4)
+        {
+            if(rawFile.status === 200 || rawFile.status == 0)
+            {
+                var allText = rawFile.responseText;	
+				debugger;
+            }
+        }
+    }
+    rawFile.send(null);
+}
+
+function isBase58(str) {
+	var base58alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'; 	
+	for (var i = 0; i < str.length; ++i) {
+		if (base58alphabet.indexOf(str[i]) == -1) { 
+			return false;
+		}
+	}
+	return true;
+}
+
+
+function decrypt(data, password, success, error, backup_found_cb) {
+
+	var mode = new Crypto.mode.CBC(Crypto.pad.iso10126);
+
+    function test_mode() {
+		try {
+			var decoded = Crypto.AES.decrypt(data, password, { mode: mode, iterations : 10 });
+			if (decoded != null && decoded.length > 0 && success(decoded)) {
+				backup_found_cb(decoded);
+				return;				
+			}
+		} catch (e) {
+			//console.log(e);
+		}
+    }
+
+    test_mode();
+
+	if (error != null) 
+		error();
+	
+	return null;
+}
+
+function putDots(label) {
+	var dots = label.innerHTML.length % 10 + 2;
+	setTimeout(function() { label.innerHTML = Array(dots).join(".") },1000);
+}
+
+function do_decrypt() {
+   document.getElementById('error').innerHTML = '';
+   document.getElementById('plain-json').innerHTML = '';
+   document.getElementById('ul-keys').innerHTML = '';
+document.getElementById('statusSpan').innerHTML = '';
+$('#statusSpan').width(0);
+
+   var encrypted = document.getElementById('enc-json').value;
+
+   if (encrypted == null || encrypted.length == 0)
+		throw 'You must copy and paste your encrypted backup into the first text area';
+
+		
+	var passwords = document.getElementById('password').value.split('\n');
+	_.each(passwords, function(password) {
+	
+		if (password == null || password.length == 0) {
+			return;
+		}
+		putDots(document.getElementById('statusProgress'));		
+		decrypt(encrypted, password, function(decrypted) {
+			try {								
+				obj = JSON.parse(decrypted);
+				
+				return (obj != null);
+			} catch (e) {
+				//console.log(e);
+				return false;
+			};
+		}, function(e) {
+			//console.log(e);
+		}, function(decrypted) {
+			if (decrypted == null || decrypted.length == 0)
+				throw 'No backup returned';
+
+			var obj = JSON.parse(decrypted);
+
+			//****** factoring this out so it doesn't print output to HTML page before all decryption is done,
+			//****** page will continue to refresh as decryption takes place
+			printOutput = function(obj){
+				var ul = document.getElementById('ul-keys');
+
+				//****** this is going to be a clear-and-refresh procedure until its all done
+				ul.innerHTML = ''; 
+				for (var i = 0; i < obj.keys.length; ++i) {
+					var li = document.createElement('li');
+					li.innerHTML = '<b>'+ obj.keys[i].addr + '</b>		-		' + obj.keys[i].priv; 
+					ul.appendChild(li);
+				}
+
+				document.getElementById('plain-json').value = JSON.stringify(obj, undefined, 2);
+			}
+
+			if (obj.double_encryption) {
+				var pass = prompt("Please enter your second password", null);
+
+				for (var i = 0; i < obj.keys.length; ++i) {
+
+					//****** watch-only addresses don't have keys, decryption produces a weird output
+					if (obj.keys[i].priv){ 
+						
+						//****** JavaScript closure
+						attachPrivKey = (function(keyIndex){ return function(output){ obj.keys[keyIndex].priv = output; printOutput(obj)} })(i);  
+						
+						//****** decrypt() was called without parameters for error and backup_found_cb 
+						decrypt(obj.keys[i].priv, obj.sharedKey + pass, isBase58, function(e){console.log(e);}, attachPrivKey);               
+					}
+				}	
+
+			} else {
+				printOutput(obj);
+			}
+		});
+	});
+		
+	$('#statusProgress').text('');
+	var spanWidth = 200;
+	var result = 'done: '+new Date() + "\n";
+	$('#statusSpan').text(result).animate({width: spanWidth},1000);
+}
+
+</script>
+
+</head>
+
+<body>
+
+<h1>Paste Encrypted JSON Backup</h1>
+<!-- 
+<textarea class="xxlarge" name="textarea" id="enc-json" style="width: 100%; height: 45px;" placeholder="Encrypted JSON Data">1dMO9KjdMNuHreZ6x3QLqJR8WHjVjpb+XAOAJh7EKmP7PRMPSs/BRTjowVb0tAzZ9hu/sBRngEoQjYfdFcVDIXP/I4fRu9WxEfiR/76nqQ2qt7Ro2gisZ9RaRBI8oQTfdNjLJxK2P4iF1EtNPqeyJvh21uQOtZQuhxoAuUkKDJlrjOY1akKzth3rw+orQ8L7v1u74toHaIDFSyrMk6e3JiX/6C2e3QVzAkwD6yIh0mNppnoijDSVsbIpaOAyzurE1Pz7SAmTvKMz8igAXSXgGwhtyV+5UMJg4eVcIr+2M623SesaqWqMatYDqNIHKDFs/0ZRxpwzfU1mw+csq+FyunV68xiZKR28g1ZIWg5halhk064nU2QRiM7OzTLm7IXNuztjkWNC4deZgNcYCNFJXKsVaK1N+ch2BHDJx/UW+etAb2YN/tOkSHHPjJ4XLeVsyaU1ztla0t28x+IUyjn6ZL+7KtE+f7IGxEuO762qYQzZB25Z4xjI2Srd8P7d+qLaAhjVVjaM2dl+WEhixs0x65Fc139+j+w6vQc23XaPqJN1lV7laoqSGqMnAcyHLtuIMS5yuTHHTuV+CyaWHaCmZLuNvsWATJ0rhCUZbcvWK8r3XrCUhjzuu8xyaerBrzddy0WNH9HVUmocSyimJR6VzTKwQ0nnFplMFsPf+eC3Qp9o4DepZSk+gyIjolc/LTRW</textarea> -->
+
+<textarea class="xxlarge" name="textarea" id="enc-json" style="width: 100%; height: 45px;" placeholder="Encrypted JSON Data">1dMO9KjdMNuHreZ6x3QLqJR8WHjVjpb+XAOAJh7EKmP7PRMPSs/BRTjowVb0tAzZ9hu/sBRngEoQjYfdFcVDIXP/I4fRu9WxEfiR/76nqQ2qt7Ro2gisZ9RaRBI8oQTfdNjLJxK2P4iF1EtNPqeyJvh21uQOtZQuhxoAuUkKDJlrjOY1akKzth3rw+orQ8L7v1u74toHaIDFSyrMk6e3JiX/6C2e3QVzAkwD6yIh0mNppnoijDSVsbIpaOAyzurE1Pz7SAmTvKMz8igAXSXgGwhtyV+5UMJg4eVcIr+2M623SesaqWqMatYDqNIHKDFs/0ZRxpwzfU1mw+csq+FyunV68xiZKR28g1ZIWg5halhk064nU2QRiM7OzTLm7IXNuztjkWNC4deZgNcYCNFJXKsVaK1N+ch2BHDJx/UW+etAb2YN/tOkSHHPjJ4XLeVsyaU1ztla0t28x+IUyjn6ZL+7KtE+f7IGxEuO762qYQzZB25Z4xjI2Srd8P7d+qLaAhjVVjaM2dl+WEhixs0x65Fc139+j+w6vQc23XaPqJN1lV7laoqSGqMnAcyHLtuIMS5yuTHHTuV+CyaWHaCmZLuNvsWATJ0rhCUZbcvWK8r3XrCUhjzuu8xyaerBrzddy0WNH9HVUmocSyimJR6VzTKwQ0nnFplMFsPf+eC3Qp9o4DepZSk+gyIjolc/LTRW</textarea>
+<div id="status">
+<span id="statusSpan"></span>
+<span id="statusProgress"></span>
+</div>
+
+<p>Passwords, 1 per line:</p>
+
+<textarea name="password" id="password" rows=10 cols=100>
+1
+2
+3
+4
+5
+6
+7
+8
+9
+0
+12
+13
+14
+15
+16
+17
+18
+1234567890</textarea>
+
+<p>Decode:</p>
+<input type="submit" value="Decode" onclick="do_decrypt()">
+
+
+<h1>Result</h1>
+<!--	//****** Added for clarity. the private key is NOT in wallet import format. 
+//***** Bitaddress.org, for example, can not import this private key format at this time -->
+<i>Private keys displayed in raw base58 (not wallet import format)</i> 
+<ul id="ul-keys"></ul>
+
+Raw:
+<br>
+
+<textarea class="xxlarge" name="textarea" id="plain-json" style="width: 100%; height: 175px;" placeholder="JSON Data"></textarea>
+	
+<p><font color="red" style="font-size:18px" id="error"></font></p>
+
+
+
+</body></html>
