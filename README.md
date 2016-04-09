@@ -9,7 +9,7 @@ Excuse the mess, I never intended to share this with anyone, but I wanted to put
 
 Try it here:
 - [simple UI](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/DecryptWallet_2PW_Fix3.html)
-- [read external URI](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/ReadExternalUriWebWorkers.html)
+- [Using javascript webworkers](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/ReadExternalUriWebWorkers.html)
 
 
 The wallet is [1CkjhyBqfGVMME82nMrQYgtW7UAmibvvUW](https://blockchain.info/address/1CkjhyBqfGVMME82nMrQYgtW7UAmibvvUW) , the json encrypted backup is secured with the key 1234567890
