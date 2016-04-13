@@ -11,7 +11,7 @@ Try it here:
 - [simple UI](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/DecryptWallet_2PW_Fix3.html)
 - [Using javascript webworkers](http://agilechai.com/code/bitcoin-bruteforce-decrypt-poc/ReadExternalUriWebWorkers.html)
 
-And then there's the most powerful one, a multithreaded node.js version (tested with Node 4.4.2 LTS built using webworker-threads npm package).  There is a property that controls how many threads you wish to run.  By default it's set to 7.
+And then there's the most powerful one, a [multithreaded node.js version](https://github.com/salibhai1/bitcoin-bruteforce-decrypt/blob/master/wallet-node-stdin-multithread-crack.js) (tested with Node 4.4.2 LTS built using webworker-threads npm package).  There is a property that controls how many threads you wish to run.  By default it's set to 7.
 
 Here is how you would run it on Windows:
 - c:\utils\john179\run\john.exe -wordlist=data\1to10.txt --stdout | node wallet-node-stdin-multithread-crack.js
